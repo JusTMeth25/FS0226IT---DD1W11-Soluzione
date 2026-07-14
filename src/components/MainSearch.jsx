@@ -1,43 +1,51 @@
-import { useState } from 'react'
-import { Container, Row, Col, Form, Button } from 'react-bootstrap'
-import { useNavigate } from 'react-router-dom'
-import Job from './Job'
+import { useState } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import Job from "./Job";
+import { getJobsAction } from "../redux/actions";
 
 const MainSearch = () => {
-  const [query, setQuery] = useState('')
-  const [jobs, setJobs] = useState([])
+  const [query, setQuery] = useState("");
 
-  const navigate = useNavigate()
+  const jobs = useSelector((state) => state.search.results);
+  const isLoading = useSelector((state) => state.search.isLoading);
+  const isError = useSelector((state) => state.search.isError);
+  const errorMessage = useSelector((state) => state.search.errorMessage);
 
-  const baseEndpoint = 'https://strive-benchmark.herokuapp.com/api/jobs?search='
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setQuery(e.target.value)
-  }
+    setQuery(e.target.value);
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-    try {
-      const response = await fetch(baseEndpoint + query + '&limit=20')
-      if (response.ok) {
-        const { data } = await response.json()
-        setJobs(data)
-      } else {
-        alert('Error fetching results')
-      }
-    } catch (error) {
-      console.log(error)
+    if (!query.trim()) {
+      return;
     }
-  }
+
+    dispatch(getJobsAction(query));
+  };
 
   return (
     <Container>
       <Row>
         <Col xs={10} className="mx-auto my-3">
           <h1>Remote Jobs Search</h1>
-          <Button onClick={() => navigate('/favourites')}>Favourites</Button>
+          <Button onClick={() => navigate("/favourites")}>Favourites</Button>
         </Col>
+
         <Col xs={10} className="mx-auto">
           <Form onSubmit={handleSubmit}>
             <Form.Control
@@ -48,14 +56,27 @@ const MainSearch = () => {
             />
           </Form>
         </Col>
+
         <Col xs={10} className="mx-auto mb-5">
-          {jobs.map((jobData) => (
-            <Job key={jobData._id} data={jobData} />
-          ))}
+          {isLoading && (
+            <div className="text-center my-4">
+              <Spinner animation="border" variant="primary" />
+            </div>
+          )}
+
+          {isError && (
+            <Alert variant="danger" className="my-3">
+              {errorMessage}
+            </Alert>
+          )}
+
+          {!isLoading &&
+            !isError &&
+            jobs.map((jobData) => <Job key={jobData._id} data={jobData} />)}
         </Col>
       </Row>
     </Container>
-  )
-}
+  );
+};
 
-export default MainSearch
+export default MainSearch;
